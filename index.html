@@ -654,9 +654,117 @@
         font-size: 0.9rem;
       }
     }
+  
+    /* ==== Abas superiores ==== */
+    .top-tabs {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto 1.5rem auto;
+      display: flex;
+      gap: 0.75rem;
+      justify-content: flex-start;
+      align-items: center;
+    }
+    .tab-btn {
+      background: white;
+      border: 1px solid rgba(140,59,59,0.12);
+      border-radius: 999px;
+      padding: 0.5rem 1.15rem;
+      font-weight: 600;
+      color: #8c3b3b;
+      display: flex;
+      gap: 0.35rem;
+      align-items: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,.03);
+      cursor: pointer;
+      transition: all .15s ease-in-out;
+    }
+    .tab-btn[aria-selected="true"] {
+      background: linear-gradient(135deg, #8c3b3b, #a35d5d);
+      color: #fff;
+      border-color: transparent;
+      box-shadow: 0 6px 14px rgba(140, 59, 59, .28);
+    }
+    .hidden { position: absolute !important; left: -99999px !important; }
+    /* dark store layout */
+    #panel-darkstore .container {
+      grid-template-columns: 400px 1fr;
+    }
+    #darkMap {
+      height: 100%;
+      min-height: 500px;
+      width: 100%;
+      border-radius: var(--border-radius-lg);
+      box-shadow: var(--shadow);
+      border: 2px solid rgba(140, 59, 59, 0.1);
+    }
+    .darkstore-row {
+      display: flex;
+      gap: .75rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .result-pill {
+      padding: .55rem 1rem;
+      border-radius: 999px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: .25rem;
+      margin-top: .3rem;
+    }
+    .result-ok { background: rgba(40,167,69,.12); color: #1e7e34; border: 1px solid rgba(40,167,69,.35); }
+    .result-bad { background: rgba(220,53,69,.12); color: #8a2633; border: 1px solid rgba(220,53,69,.35); }
+    @media (max-width: 992px) {
+      #panel-darkstore .container {
+        grid-template-columns: 1fr;
+      }
+      .top-tabs { justify-content: center; }
+    }
+
+  
+    /* --- Debug Overlay --- */
+    #debugBox{
+      position: fixed; bottom: 82px; right: 16px; width: 360px; max-height: 48vh;
+      background: rgba(20,20,20,.92); color: #e5e7eb; font: 12px/1.35 monospace;
+      border: 1px solid rgba(255,255,255,.15); border-radius: 10px; padding: 8px 10px;
+      z-index: 9999; box-shadow: 0 12px 26px rgba(0,0,0,.45); display:none; overflow:auto;
+    }
+    #debugBtn{
+      position: fixed; bottom: 16px; right: 16px; z-index: 9999;
+      background:#8c3b3b; color:#fff; border:none; border-radius: 999px; padding:10px 14px; cursor:pointer;
+      box-shadow: 0 4px 12px rgba(140,59,59,.4);
+    }
+  
+    /* Force Dark Store map to be always visible and sized */
+    #darkMap{
+      display:block !important;
+      position: relative !important;
+      z-index: 1 !important;
+      width: 100% !important;
+      height: 640px !important;
+      min-height: 640px !important;
+      background:#f7f7f7;
+    }
+    #panel-darkstore main.map-container{ display:block !important; }
+    #panel-darkstore .container{ display:grid; grid-template-columns: 380px 1fr; gap: 1rem; align-items:start; }
+    @media (max-width: 980px){
+      #panel-darkstore .container{ grid-template-columns: 1fr; }
+    }
+
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
+
+  
+  <div class="top-tabs" role="tablist" aria-label="Visualizações">
+    <button id="tab-cep" class="tab-btn" role="tab" aria-selected="true" aria-controls="panel-cep">📦 Consulta CEP</button>
+    <button id="tab-dark" class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-darkstore">🏪 Base Dark Store</button>
+  </div>
+
+  <div id="panels-stack" style="position:relative; min-height: 760px;">
+  <div id="panel-cep" role="tabpanel" aria-labelledby="tab-cep">
 
   <div class="container">
     <aside class="panel">
@@ -716,6 +824,54 @@
   </div>
 
   <!-- Créditos do Desenvolvedor -->
+  
+  </div> <!-- /#panel-cep -->
+  </div><!-- /#panels-stack -->
+
+  <div id="panel-darkstore" class="hidden" role="tabpanel" aria-labelledby="tab-dark">
+    <div class="container">
+      <aside class="panel">
+        <div class="card">
+          <header style="width: 100%; background: #fff; padding: 10px 0; box-shadow: 0 2px 6px rgba(0,0,0,0.1); margin-bottom:1rem;">
+            <div style="display: flex; justify-content: center; align-items: center; gap: 20px;">
+              <img src="static/Berrygood_logo.png" alt="Berry Good Logo" style="max-width: 150px; height: auto;">
+              <img src="static/Berryhouse_logo.png" alt="Berry House Logo" style="max-width: 150px; height: auto;">
+            </div>
+          </header>
+          <section class="section">
+            <h2>🏪 Base Dark Store</h2>
+            <p>Endereço-base fixo:</p>
+            <p><strong>R. Cel. Domingos Ferreira, 23 – Cursino, São Paulo – SP</strong></p>
+          </section>
+          <section class="section">
+            <label for="dark-radius" style="font-weight:600;">Raio de cobertura (0 – 10 km)</label>
+            <div class="darkstore-row" style="margin-top:.35rem;">
+              <input id="dark-radius" type="range" min="0" max="10" step="0.5" value="5" style="flex:1;">
+              <span id="dark-radius-value" class="pill" style="background:#f1f1f1;">5,0 km</span>
+            </div>
+            <p id="dark-area" class="muted" style="margin-top:.35rem;">Área coberta: ~78,5 km²</p>
+          </section>
+          <section class="section">
+            <label for="darkstore-search" style="font-weight:600;">Pesquisar endereço ou CEP</label>
+            <div class="darkstore-row" style="margin-top:.35rem;">
+              <input id="darkstore-search" type="text" placeholder="Ex.: Av. Paulista, 1000 ou 06412-240" style="flex:1; border: 2px solid var(--color-border); border-radius: var(--border-radius); padding:.6rem .75rem; background:#fafafa;">
+              <button id="darkstore-btn" class="btn btn-primary">Buscar</button>
+            </div>
+            <div id="darkstore-result"></div>
+            <div class="darkstore-row" style="margin-top:.5rem;">
+              <button id="dark-btn-center" class="btn btn-secondary">Centralizar base</button>
+              <button id="dark-btn-max" class="btn btn-primary">Usar 10 km</button>
+              <button id="dark-btn-clear" class="btn btn-secondary">Limpar pontos</button>
+            </div>
+          </section>
+        </div>
+      </aside>
+      <main class="map-container">
+        <div id="darkMap"></div>
+      </main>
+    </div>
+  </div>
+
   <footer class="developer-credits">
     <div class="credits-content">
       <span class="credits-text">Desenvolvido por</span>
@@ -1136,8 +1292,302 @@
 
       // ----- EXECUÇÃO -----
       init();
-    });
+
+      // ===== DEBUG HELPERS =====
+      (function(){
+        const box = document.getElementById('debugBox');
+        const btn = document.getElementById('debugBtn');
+        window.__dbg = {open:false, logs:[]};
+        function ts(){ const d=new Date(); return d.toISOString().slice(11,19) + '.' + d.getMilliseconds().toString().padStart(3,'0'); }
+        function log(level, msg, obj){
+          const line = `[${ts()}] ${level} ${msg}`;
+          console[level === 'ERR' ? 'error' : 'log'](line, obj || '');
+          window.__dbg.logs.push(line + (obj ? ' ' + JSON.stringify(obj) : ''));
+          if(window.__dbg.open){
+            box.style.display='block';
+            box.textContent = window.__dbg.logs.slice(-200).join('\\n');
+          }
+        }
+        window.__log = {
+          info:(m,o)=>log('INF',m,o),
+          warn:(m,o)=>log('WRN',m,o),
+          err:(m,o)=>log('ERR',m,o)
+        };
+        btn.addEventListener('click', ()=>{
+          window.__dbg.open = !window.__dbg.open;
+          box.style.display = window.__dbg.open ? 'block' : 'none';
+          if(window.__dbg.open){ box.textContent = window.__dbg.logs.slice(-200).join('\\n'); }
+        });
+        window.addEventListener('error', (e)=>{ log('ERR','window.onerror', {msg:e.message, src:e.filename, ln:e.lineno}); });
+        window.addEventListener('unhandledrejection', (e)=>{ log('ERR','unhandledrejection', {reason: (e.reason && e.reason.message) || String(e.reason)}); });
+        __log.info('Debug helpers loaded');
+      })();
+
+      // ===== Leaflet presence check =====
+      (function(){
+        const present = typeof L !== 'undefined';
+        __log.info('Leaflet present?', {present});
+      })();
+
+      // ===== Override initDarkTab to add logs if defined later =====
+      (function(){
+        const _init = (typeof initDarkTab === 'function') ? initDarkTab : null;
+        window.initDarkTab = function(){
+          __log.info('initDarkTab() called');
+          const el = document.getElementById('darkMap');
+          if(!el){ __log.err('#darkMap missing'); return; }
+          const r = {w: el.clientWidth, h: el.clientHeight, disp: getComputedStyle(el).display, vis: getComputedStyle(el).visibility};
+          __log.info('#darkMap size/pre', r);
+          try{
+            return _init ? _init() : (function(){
+              __log.warn('Fallback: original initDarkTab not found (already inlined with logs?)');
+            })();
+          }catch(e){
+            __log.err('initDarkTab exception', {msg:e.message, stack:e.stack});
+          }
+        };
+      })();
+
+      // ===== Patch map creation logs after L.map =====
+      (function(){
+        const _Lmap = L.map;
+        L.map = function(id, opts){
+          __log.info('L.map creating', {id});
+          const m = _Lmap.call(this, id, opts);
+          try{
+            m.on('load', ()=>__log.info('map load event'));
+            m.on('layeradd', (e)=>__log.info('layer add', {type: e.layer && e.layer.constructor && e.layer.constructor.name}));
+            m.on('resize', (e)=>__log.info('map resize', {size: e.newSize}));
+          }catch(e){ __log.err('map hook error', {msg:e.message}); }
+          return m;
+        };
+      })();
+
+      // ===== Tile layer error logging =====
+      (function(){
+        const _tile = L.tileLayer;
+        L.tileLayer = function(url, opts){
+          const t = _tile.call(this, url, opts);
+          try{
+            t.on('tileerror', (e)=>__log.err('tile error', {url: e.tile && e.tile.src}));
+            t.on('load', ()=>__log.info('tile layer loaded', {urlTemplate: url}));
+          }catch(e){ __log.err('tile hook error', {msg:e.message}); }
+          return t;
+        };
+      })();
+
+      // Log when user switches tabs
+      (function(){
+        const tabCepBtn = document.getElementById('tab-cep');
+        const tabDarkBtn = document.getElementById('tab-dark');
+        if(tabCepBtn) tabCepBtn.addEventListener('click', ()=>__log.info('Tab -> CEP'));
+        if(tabDarkBtn) tabDarkBtn.addEventListener('click', ()=>__log.info('Tab -> Dark Store'));
+      })();
+
+
+      
+      // ====== Aba Dark Store (lazy init + XLS) ======
+      const tabCep = document.getElementById('tab-cep');
+      const tabDark = document.getElementById('tab-dark');
+      const panelCep = document.getElementById('panel-cep');
+      const panelDark = document.getElementById('panel-darkstore');
+
+      let darkTabInitialized = false;
+      let darkMap = null;
+      let darkBaseLatLng = null;
+      let darkBaseMarker = null;
+      let darkCircle = null;
+      let darkSearchMarkers = [];
+      let darkAllowedAddresses = [];
+      let darkXlsLoaded = false;
+
+      // Base fixa (Cursino) — coordenadas aproximadas para evitar depender de geocodificação
+      const DARK_BASE_ADDR = "R. Cel. Domingos Ferreira, 23 - Cursino, São Paulo - SP";
+      const DARK_BASE_LATLNG = [-23.6125, -46.6240];
+      const DARK_XLS_PATH = "SEGUNDA A SABADO SP Ate_10KM - Ajustada.xls";
+
+      function selectTab(which) {
+        // Força o darkMap a ter altura antes de inicializar
+        const darkDiv = document.getElementById('darkMap');
+        if (darkDiv) { darkDiv.style.minHeight = '520px'; darkDiv.style.height = '520px'; }
+        const isCep = which === 'cep';
+        tabCep.setAttribute('aria-selected', isCep ? 'true' : 'false');
+        tabDark.setAttribute('aria-selected', isCep ? 'false' : 'true');
+        panelCep.classList.toggle('hidden', !isCep);
+        panelDark.classList.toggle('hidden', isCep);
+        setTimeout(() => {
+          if (!isCep && !darkTabInitialized) {
+            initDarkTab();
+          } else {
+            if (darkMap) darkMap.invalidateSize();
+            if (typeof leafletMap !== 'undefined' && leafletMap) leafletMap.invalidateSize();
+          }
+
+          if (!isCep && window.darkMap) {
+            try {
+              window.darkMap.invalidateSize();
+              setTimeout(()=> window.darkMap.invalidateSize(), 150);
+              setTimeout(()=> window.darkMap.invalidateSize(), 500);
+              setTimeout(()=> window.darkMap.invalidateSize(), 1200);
+            } catch(_) {}
+          }
+
+        }, 200);
+      }
+
+      tabCep.addEventListener('click', () => selectTab('cep'));
+      tabDark.addEventListener('click', () => selectTab('dark'));
+
+      async function loadDarkXls() {
+        if (darkXlsLoaded) return;
+        try {
+          const res = await fetch(DARK_XLS_PATH);
+          const ab = await res.arrayBuffer();
+          const wb = XLSX.read(ab, {type:'array'});
+          const first = wb.SheetNames[0];
+          const ws = wb.Sheets[first];
+          const json = XLSX.utils.sheet_to_json(ws, {defval: ""});
+          darkAllowedAddresses = json.map(row => Object.values(row).join(" ").trim()).filter(Boolean);
+          darkXlsLoaded = true;
+        } catch(e) {
+          console.warn("Falha ao carregar XLS de endereços:", e);
+          darkAllowedAddresses = [];
+        }
+      }
+
+      function haversine(lat1, lon1, lat2, lon2) {
+        const R = 6371;
+        const toRad = x => x * Math.PI / 180;
+        const dLat = toRad(lat2 - lat1);
+        const dLon = toRad(lon2 - lon1);
+        const a = Math.sin(dLat/2) ** 2 +
+                  Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+                  Math.sin(dLon/2) ** 2;
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c;
+      }
+
+      // Geocodificação simples via Nominatim (usada somente para o endereço pesquisado)
+      async function geocodeGeneric(q) {
+        try {
+          const url = "https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" + encodeURIComponent(q);
+          const res = await fetch(url, {headers: {"Accept-Language":"pt-BR"}});
+          const js = await res.json();
+          if (Array.isArray(js) && js.length) {
+            return [parseFloat(js[0].lat), parseFloat(js[0].lon), js[0].display_name];
+          }
+        } catch(e) {}
+        return null;
+      }
+
+      function initDarkTab() {
+        // Garante que o container está visível e dimensionado antes de criar o mapa
+        
+        darkTabInitialized = true;
+
+        // cria o mapa imediatamente (painel pode estar off-screen, mas com tamanho válido)
+        darkMap = L.map('darkMap'); __log.info('darkMap created');
+        // Garantir que o container tenha tamanho antes de setView
+        setTimeout(() => { darkMap.invalidateSize(); }, 50);
+
+        // camada de tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '&copy; OpenStreetMap'
+        }).addTo(darkMap);
+        L.control.scale({metric:true, imperial:false}).addTo(darkMap);
+
+        // usa a coordenada fixa da base
+        darkBaseLatLng = DARK_BASE_LATLNG.slice();
+        darkMap.setView(darkBaseLatLng, 13); __log.info('darkMap setView applied', {latlng: darkBaseLatLng});
+        darkBaseMarker = L.marker(darkBaseLatLng, {title:"Base Dark Store"})
+          .addTo(darkMap).bindPopup("<strong>Base Dark Store</strong><br>" + DARK_BASE_ADDR);
+
+        // UI
+        const darkRadiusInput = document.getElementById('dark-radius');
+        const darkRadiusValue = document.getElementById('dark-radius-value');
+        const darkArea        = document.getElementById('dark-area');
+        const darkSearchInput = document.getElementById('darkstore-search');
+        const darkSearchBtn   = document.getElementById('darkstore-btn');
+        const darkResult      = document.getElementById('darkstore-result');
+        const darkBtnCenter   = document.getElementById('dark-btn-center');
+        const darkBtnMax      = document.getElementById('dark-btn-max');
+        const darkBtnClear    = document.getElementById('dark-btn-clear');
+
+        const updateRadiusUI = (km) => {
+          darkRadiusValue.textContent = km.toLocaleString('pt-BR',{minimumFractionDigits:1, maximumFractionDigits:1}) + " km";
+          const area = Math.PI * (km ** 2);
+          darkArea.textContent = "Área coberta: ~" + area.toLocaleString('pt-BR',{maximumFractionDigits:1}) + " km²";
+        };
+
+        const drawCircle = (km) => {
+          const meters = Math.min(Math.max(km,0),10) * 1000;
+          if (darkCircle) darkCircle.remove();
+          darkCircle = L.circle(darkBaseLatLng, {
+            radius: meters,
+            color: '#8c3b3b', weight: 2,
+            fillColor: '#8c3b3b', fillOpacity: 0.12
+          }).addTo(darkMap);
+        };
+
+        // inicial
+        const km0 = parseFloat(darkRadiusInput.value);
+        updateRadiusUI(km0); drawCircle(km0);
+
+        // eventos
+        darkRadiusInput.addEventListener('input', (e)=>{ const k=parseFloat(e.target.value); updateRadiusUI(k); drawCircle(k); });
+        darkBtnCenter.addEventListener('click', ()=>{ darkMap.setView(darkBaseLatLng,13); });
+        darkBtnMax.addEventListener('click', ()=>{ darkRadiusInput.value=10; updateRadiusUI(10); drawCircle(10); });
+        darkBtnClear.addEventListener('click', ()=>{ darkSearchMarkers.forEach(m=>m.remove()); darkSearchMarkers=[]; darkResult.innerHTML=""; });
+
+        async function handleSearch(){
+          const q = (darkSearchInput.value||"").trim();
+          if (!q) { showToast("Digite um endereço ou CEP."); return; }
+
+          // carrega planilha uma vez (não trava se falhar)
+          await loadDarkXls();
+          const qLower = q.toLowerCase();
+          const inXls = darkAllowedAddresses.some(s => s.toLowerCase().includes(qLower));
+
+          const data = await geocodeGeneric(q);
+          if (!data) {
+            darkResult.innerHTML = inXls
+              ? '<span class="result-pill result-ok">✅ Na base de até 10 km (planilha)</span>'
+              : '<span class="result-pill result-bad">Endereço/CEP não encontrado</span>';
+            return;
+          }
+          const [lat, lon, display] = data;
+          const mk = L.marker([lat, lon], {title: display}).addTo(darkMap).bindPopup(display);
+          darkSearchMarkers.push(mk);
+          const dKm = haversine(darkBaseLatLng[0], darkBaseLatLng[1], lat, lon);
+          const rKm = parseFloat(darkRadiusInput.value);
+          const inside = dKm <= rKm + 0.05;
+          const xlsText = inXls ? " (na planilha)" : "";
+          darkResult.innerHTML = inside
+            ? '<span class="result-pill result-ok">✅ Dentro da área ('+dKm.toLocaleString("pt-BR",{maximumFractionDigits:1})+' km)'+xlsText+'</span>'
+            : '<span class="result-pill result-bad">❌ Fora da área ('+dKm.toLocaleString("pt-BR",{maximumFractionDigits:1})+' km)</span>';
+          const group = L.featureGroup([mk, darkBaseMarker]);
+          darkMap.fitBounds(group.getBounds().pad(0.35));
+        }
+
+        darkSearchBtn.addEventListener('click', handleSearch);
+        darkSearchInput.addEventListener('keypress', (e)=>{ if (e.key === 'Enter') handleSearch(); });
+
+        // tentar ajustar o tamanho do mapa após animação da aba
+        setTimeout(()=> darkMap.invalidateSize(), 250);
+        setTimeout(()=> darkMap.invalidateSize(), 800);
+        setTimeout(()=> darkMap.invalidateSize(), 1600);
+      }
+
+      // começa na aba CEP
+      selectTab('cep');
+
+
+          });
   </script>
+
+  <button id="debugBtn" title="Alternar modo debug">🪲 Debug</button>
+  <div id="debugBox"></div>
 </body>
 </html>
 
