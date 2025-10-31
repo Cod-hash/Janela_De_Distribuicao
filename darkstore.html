@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Base Dark Store — Cobertura, Busca & Bairros</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    :root{ --berry:#8c3b3b; --border:#eadede; --text:#2b2b2b; --bg:#fbfaf6; }
+    html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:system-ui,Segoe UI,Inter,Roboto,Arial}
+    .shell{max-width:1200px;margin:12px auto;padding:0 12px}
+    header{display:flex;align-items:center;gap:14px;justify-content:center;background:#fff;border:1px solid var(--border);border-radius:14px;padding:8px 12px;margin-bottom:10px;box-shadow:0 8px 24px rgba(0,0,0,.05)}
+    header h1{font-size:16px;margin:0;color:var(--berry)}
+    .grid{display:grid;grid-template-columns:1.25fr .75fr;gap:14px}
+    @media (max-width:1024px){ .grid{grid-template-columns:1fr} }
+    .card{background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.05)}
+    .map-wrap{height:66vh;min-height:520px;overflow:hidden}
+    #map{height:100%;width:100%}
+    .pane{padding:14px}
+    .pane h2{margin:0 0 8px 0;color:var(--berry)}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    input[type="text"],select{flex:1;padding:10px 12px;border:2px solid #eee;border-radius:10px;background:#fafafa;font-weight:600;min-width:180px}
+    button{padding:10px 14px;border-radius:999px;border:1px solid #e6c9c9;background:#fff;cursor:pointer;font-weight:700;color:var(--berry)}
+    button.primary{background:linear-gradient(135deg,#8c3b3b,#a35d5d);color:#fff;border-color:transparent}
+    .pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 10px;background:#f3f3f3;font-weight:700}
+    .mini-tabs{display:flex;gap:8px;margin:.25rem 0 .75rem 0;}
+    .mini-tabs button{border-radius:10px;padding:8px 12px;border:1px solid rgba(140,59,59,.25);background:#fff;color:#8c3b3b;font-weight:700}
+    .mini-tabs button[aria-selected="true"]{background:linear-gradient(135deg,#8c3b3b,#a35d5d);color:#fff;border-color:transparent}
+    .panel-section{display:none}
+    .panel-section.active{display:block}
+    table{width:100%;border-collapse:collapse;font-size:14px}
+    th,td{padding:10px;border-bottom:1px solid #f2f2f2}
+    thead tr{position:sticky;top:0;background:#fafafa}
+    tbody tr:nth-child(odd){background:#fcfcfc}
+    .badge{display:inline-block;padding:4px 8px;border-radius:999px;font-weight:700;font-size:12px}
+    .ok{background:#e6f7ee;color:#176b41;border:1px solid #b6ebcf}
+    .warn{background:#fff4e5;color:#8a5b14;border:1px solid #ffe0b3}
+    .err{background:#fde8e8;color:#8a2633;border:1px solid #f6c9c9}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="card"><h1>Base Dark Store — Cobertura, Busca & Bairros (10 km)</h1></header>
+
+    <section class="grid">
+      <div class="card map-wrap"><div id="map"></div></div>
+
+      <aside class="card pane">
+        <div class="mini-tabs">
+          <button id="tabCobertura" aria-selected="true">🗺️ Cobertura</button>
+          <button id="tabTempo" aria-selected="false">🕒 Tempo de Entrega</button>
+        </div>
+
+        <section id="secCobertura" class="panel-section active">
+          <h2>Ferramentas de Cobertura</h2>
+          <p style="margin:.25rem 0 .75rem 0;"><strong>Base:</strong> R. Cel. Domingos Ferreira, 23 – Cursino, São Paulo – SP</p>
+          <div class="row" style="margin-bottom:.5rem;">
+            <button id="fitArea" class="primary">Enquadrar área</button>
+            <button id="zoomCity">Zoom cidade</button>
+            <button id="center">Centralizar base</button>
+          </div>
+          <label for="r" style="font-weight:700;">Raio (0–10 km)</label>
+          <div class="row" style="margin:.35rem 0;">
+            <input id="r" type="range" min="0" max="10" step="0.5" value="10" style="flex:1">
+            <span id="rval" class="pill">10,0 km</span>
+            <span id="area" class="pill">Área: ~314,2 km²</span>
+          </div>
+
+          <div class="row" style="margin:.6rem 0 .2rem 0;border-top:1px dashed #eadede;padding-top:.6rem;">
+            <input id="qCobertura" type="text" placeholder="Verificar endereço/CEP (ex.: 06412-240)" />
+            <button id="checkCobertura" class="primary">Verificar</button>
+            <span id="statusCobertura" class="badge" style="display:none"></span>
+          </div>
+
+          <div style="margin:10px 0 6px 0;border-top:1px dashed #eadede"></div>
+          <h2>📋 Regiões atendidas</h2>
+          <div class="row" style="margin:.35rem 0;">
+            <input id="filtroBairro" type="text" placeholder="Filtrar por nome (ex.: Ipiranga, Saúde)" />
+            <button id="loadBairros" class="primary">Carregar bairros</button>
+            <button id="exportCsv">Exportar CSV</button>
+            <span id="countBairros" class="pill">0 itens</span>
+          </div>
+          <div class="card" style="border:1px solid #eadede;padding:0;max-height:300px;overflow:auto;border-radius:12px;">
+            <table>
+              <thead>
+                <tr>
+                  <th style="text-align:left;">Bairro/Subdistrito</th>
+                  <th style="text-align:left;">Tipo</th>
+                  <th style="text-align:right;">Distância (km)</th>
+                </tr>
+              </thead>
+              <tbody id="bairrosBody">
+                <tr><td colspan="3" style="color:#666;padding:12px;">Clique em <strong>Carregar bairros</strong>.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="secTempo" class="panel-section">
+          <h2>Tempo estimado (offline)</h2>
+          <p style="margin:.25rem 0 .75rem 0;color:#666">Distância Haversine ÷ velocidade média por faixa.</p>
+          <div class="row" style="margin:.35rem 0;">
+            <input id="qTempo" type="text" placeholder="Endereço/CEP ex.: 06412-240" />
+            <button id="goTempo" class="primary">Calcular</button>
+          </div>
+          <div class="row" style="margin:.35rem 0;">
+            <label for="slot" style="font-weight:700;">Faixa</label>
+            <select id="slot">
+              <option value="auto" selected>Automático (agora)</option>
+              <option value="manha">06–09 (pico)</option>
+              <option value="almoco">09–16 (moderado)</option>
+              <option value="tarde">16–20 (pico)</option>
+              <option value="noite">20–06 (livre)</option>
+            </select>
+            <button id="atualizarAgora">🔄 Agora</button>
+          </div>
+          <div id="outTempo" style="min-height:28px;"></div>
+        </section>
+      </aside>
+    </section>
+  </div>
+
+  <script>
+    const BASE=[-23.6125,-46.6240], MAX=10;
+    let map,circle,baseMarker,searchMarkers=[],lastTempoMarker=null,bairrosCache=null;
+
+    const fmt=n=>n.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
+    const circleBounds=(latlng,km)=>L.circle(latlng,{radius:km*1000}).getBounds();
+    function invalidateRetries(m){ if(!m) return; m.invalidateSize(); setTimeout(()=>m.invalidateSize(),150); setTimeout(()=>m.invalidateSize(),500); setTimeout(()=>m.invalidateSize(),1200); }
+    function hav(a,b){const R=6371,t=x=>x*Math.PI/180;const dLat=t(b[0]-a[0]),dLon=t(b[1]-a[1]);const A=t(a[0]),B=t(b[0]);const h=Math.sin(dLat/2)**2+Math.cos(A)*Math.cos(B)*Math.sin(dLon/2)**2;return 2*R*Math.asin(Math.sqrt(h));}
+    function fitCurrentArea(pad=.25){const km=parseFloat(document.getElementById('r').value);map.fitBounds(circleBounds(BASE,km).pad(pad),{animate:true,duration:.6});}
+    function setRadius(km){km=Math.min(Math.max(km,0),MAX);circle.setRadius(km*1000);document.getElementById('rval').textContent=fmt(km)+' km';document.getElementById('area').textContent='Área: ~'+(Math.PI*km*km).toLocaleString('pt-BR',{maximumFractionDigits:1})+' km²';if(bairrosCache) renderBairros(bairrosCache,km);}
+
+    function init(){
+      map=L.map('map',{zoomAnimation:true});
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(map);
+      L.control.scale({metric:true,imperial:false}).addTo(map);
+      baseMarker=L.marker(BASE,{title:'Base Dark Store'}).addTo(map).bindPopup('Base Dark Store — Cursino');
+      circle=L.circle(BASE,{radius:10000,color:'#8c3b3b',weight:2,fillColor:'#8c3b3b',fillOpacity:.12}).addTo(map);
+      document.getElementById('r').value=10; setRadius(10); fitCurrentArea(.2); invalidateRetries(map);
+    }
+    window.addEventListener('load',init);
+    window.addEventListener('resize',()=>invalidateRetries(map));
+
+    async function geocode(q){
+      try{
+        const u='https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(q);
+        const r=await fetch(u,{headers:{'Accept-Language':'pt-BR'}});
+        const j=await r.json();
+        if(Array.isArray(j)&&j.length){return [parseFloat(j[0].lat),parseFloat(j[0].lon),j[0].display_name];}
+      }catch(e){}
+      return null;
+    }
+
+    document.getElementById('checkCobertura').addEventListener('click', async ()=>{
+      const q=(document.getElementById('qCobertura').value||'').trim();
+      const status=document.getElementById('statusCobertura');
+      if(!q){ status.style.display='inline-block'; status.className='badge err'; status.textContent='Informe um endereço/CEP'; return; }
+      const data=await geocode(q);
+      if(!data){ status.style.display='inline-block'; status.className='badge err'; status.textContent='Endereço/CEP não encontrado'; return; }
+      const [lat,lon,disp]=data;
+      const dist=hav(BASE,[lat,lon]); const km=parseFloat(document.getElementById('r').value);
+      const dentro = dist <= km + 0.01;
+      status.style.display='inline-block';
+      status.className='badge ' + (dentro? 'ok' : 'warn');
+      status.textContent = (dentro? 'Dentro' : 'Fora') + ` • ${fmt(dist)} km`;
+      const mk=L.marker([lat,lon]).addTo(map).bindPopup(disp);
+      searchMarkers.push(mk);
+      map.fitBounds(L.featureGroup([mk,baseMarker]).getBounds().pad(.35),{animate:true,duration:.6});
+    });
+
+    async function overpassBairros(center, raioKm){
+      const [lat,lon] = center;
+      const m = Math.round(raioKm*1000);
+      const query = `[out:json][timeout:25];
+        (
+          node(around:${m},${lat},${lon})[place~"neighbourhood|suburb|quarter|borough|village|residential"];
+          way(around:${m},${lat},${lon})[place~"neighbourhood|suburb|quarter|borough|village|residential"];
+          relation(around:${m},${lat},${lon})[place~"neighbourhood|suburb|quarter|borough|village|residential"];
+        );
+        out center tags;`;
+      const url="https://overpass-api.de/api/interpreter";
+      const res=await fetch(url,{method:"POST",body:query});
+      if(!res.ok) throw new Error("Overpass falhou");
+      const js=await res.json();
+      const rows=[];
+      for(const el of js.elements||[]){
+        const name=(el.tags && (el.tags['name:pt']||el.tags['name']))||"(sem nome)";
+        const type=(el.tags && el.tags.place)||el.type;
+        let c;
+        if(el.type==="node"){c=[el.lat,el.lon];}
+        else if(el.center){c=[el.center.lat,el.center.lon];}
+        else if(el.lat && el.lon){c=[el.lat,el.lon];}
+        else continue;
+        const dist=hav(center,c);
+        rows.push({name,type,dist});
+      }
+      rows.sort((a,b)=>a.dist-b.dist);
+      const seen=new Set(); const uniq=[];
+      for(const r of rows){
+        const key=r.name.toLowerCase();
+        if(!seen.has(key)){uniq.push(r);seen.add(key);}
+      }
+      return uniq;
+    }
+    function renderBairros(rows, raioAtual, filtro=''){
+      const body=document.getElementById('bairrosBody');
+      const countEl=document.getElementById('countBairros');
+      body.innerHTML="";
+      let count=0;
+      const f=filtro.trim().toLowerCase();
+      for(const r of rows){
+        if(r.dist <= raioAtual+0.05 && (!f || r.name.toLowerCase().includes(f))){
+          count++;
+          const tr=document.createElement('tr');
+          tr.innerHTML=`<td>${r.name}</td><td>${r.type}</td><td style="text-align:right;">${fmt(r.dist)}</td>`;
+          body.appendChild(tr);
+        }
+      }
+      if(count===0){ body.innerHTML='<tr><td colspan="3" style="color:#666;padding:12px;">Nenhum bairro dentro do raio/filtro.</td></tr>'; }
+      countEl.textContent = count+' itens';
+    }
+    function exportCSV(rows,raioAtual,filtro=''){
+      let out="bairro;tipo;dist_km\n";
+      const f=filtro.trim().toLowerCase();
+      rows.forEach(r=>{ if(r.dist<=raioAtual+0.05 && (!f || r.name.toLowerCase().includes(f))){ out+=`"${r.name.replace('"','""')}";${r.type};${r.dist.toFixed(3)}\n`; } });
+      const blob=new Blob([out],{type:"text/csv;charset=utf-8;"});
+      const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download="bairros_raio.csv"; a.click(); URL.revokeObjectURL(a.href);
+    }
+    document.getElementById('loadBairros').addEventListener('click', async ()=>{
+      const btn=document.getElementById('loadBairros');
+      btn.disabled=true; btn.textContent='Carregando...';
+      try{
+        const raio=parseFloat(document.getElementById('r').value);
+        bairrosCache=await overpassBairros(BASE,raio);
+        renderBairros(bairrosCache,raio,document.getElementById('filtroBairro').value);
+      }catch(e){
+        document.getElementById('bairrosBody').innerHTML='<tr><td colspan="3" style="color:#8a2633;padding:12px;">Falha ao consultar. Tente novamente.</td></tr>';
+      }finally{
+        btn.disabled=false; btn.textContent='Carregar bairros';
+      }
+    });
+    document.getElementById('exportCsv').addEventListener('click',()=>{
+      const raio=parseFloat(document.getElementById('r').value);
+      if(!bairrosCache){ alert('Carregue os bairros primeiro.'); return; }
+      exportCSV(bairrosCache,raio,document.getElementById('filtroBairro').value);
+    });
+    document.getElementById('filtroBairro').addEventListener('input',()=>{
+      if(bairrosCache){
+        const raio=parseFloat(document.getElementById('r').value);
+        renderBairros(bairrosCache,raio,document.getElementById('filtroBairro').value);
+      }
+    });
+
+    function slotSpeed(slot){
+      switch(slot){
+        case 'manha': return 18; case 'almoco': return 28; case 'tarde': return 20; case 'noite': return 35;
+        default: const h=new Date().getHours(); if(h>=6&&h<9)return 18; if(h>=9&&h<16)return 28; if(h>=16&&h<20)return 20; return 35;
+      }
+    }
+    async function calcTempo(){
+      const qT=(document.getElementById('qTempo').value||'').trim();
+      const sel=document.getElementById('slot').value;
+      if(!qT){ document.getElementById('outTempo').textContent='Digite um endereço/CEP.'; return null; }
+      const data=await geocode(qT);
+      if(!data){ document.getElementById('outTempo').textContent='Endereço/CEP não encontrado.'; return null; }
+      const [lat,lon,disp]=data;
+      if(lastTempoMarker){ lastTempoMarker.remove(); }
+      lastTempoMarker=L.marker([lat,lon]).addTo(map).bindPopup(disp);
+      const dist=hav(BASE,[lat,lon]); const v=slotSpeed(sel); const min=Math.round((dist/v)*60);
+      document.getElementById('outTempo').innerHTML = `<strong>${min} min</strong> para ~${fmt(dist)} km (faixa: ${sel==='auto'?'automática':sel}).`;
+      return {lat,lon,dist,min};
+    }
+    document.getElementById('goTempo').addEventListener('click',async()=>{
+      const res=await calcTempo(); if(res){ map.fitBounds(L.featureGroup([L.marker([res.lat,res.lon]),baseMarker]).getBounds().pad(.35),{animate:true,duration:.6}); }
+    });
+    document.getElementById('atualizarAgora').addEventListener('click',()=>{ document.getElementById('slot').value='auto'; calcTempo(); });
+
+    document.getElementById('fitArea').addEventListener('click',()=>fitCurrentArea(.2));
+    document.getElementById('zoomCity').addEventListener('click',()=>map.setView(BASE,12,{animate:true,duration:.5}));
+    document.getElementById('center').addEventListener('click',()=>map.setView(BASE,map.getZoom(),{animate:true,duration:.5}));
+    document.getElementById('r').addEventListener('input',e=>{setRadius(parseFloat(e.target.value));fitCurrentArea(.2);});
+
+    (function(){
+      const tabCob=document.getElementById('tabCobertura');
+      const tabTem=document.getElementById('tabTempo');
+      const secCob=document.getElementById('secCobertura');
+      const secTem=document.getElementById('secTempo');
+      function sel(which){
+        const isCob=which==='cob';
+        tabCob.setAttribute('aria-selected',isCob?'true':'false');
+        tabTem.setAttribute('aria-selected',isCob?'false':'true');
+        secCob.classList.toggle('active',isCob);
+        secTem.classList.toggle('active',!isCob);
+        setTimeout(()=>invalidateRetries(map),120);
+      }
+      tabCob.addEventListener('click',()=>sel('cob'));
+      tabTem.addEventListener('click',()=>sel('tem'));
+      sel('cob');
+    })();
+  </script>
+</body>
+</html>
